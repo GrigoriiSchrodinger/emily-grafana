@@ -12,19 +12,18 @@ ifeq ($(DOCKER_COMPOSE),)
 	DOCKER_COMPOSE := $(shell which docker 2>/dev/null)
 	DOCKER_COMPOSE_CMD := compose
 else
-	DOCKER_COMPOSE_CMD := up -d
+	DOCKER_COMPOSE_CMD := compose
 endif
 
 # DOCKER TASKS
 up: ## Runs the containers in detached mode
-	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_CMD)
+	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_CMD) up -d
 
 clean: ## Stops and removes all containers
-	$(DOCKER_COMPOSE) down
+	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_CMD) down
 
 logs: ## View the logs from the containers
-	$(DOCKER_COMPOSE) logs -f
+	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_CMD) logs -f
 
 open: ## Opens tabs in container
 	open http://localhost:3000/
-

@@ -14,19 +14,31 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      run: make build
-
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.8.0
+    - name: Transfer files to remote server
+      uses: appleboy/scp-action@v0.1.7
       with:
-        ssh-private-key: ${{ secrets.REMOTE_SSH_KEY }}
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.REMOTE_SSH_KEY }}
+        source: "."
+        target: "/opt/${{ github.event.repository.name }}"
+        strip_components: 0
 
-    - name: Deploy to remote server
-      env:
-        REMOTE_USER: ${{ secrets.REMOTE_USER }}
-        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-      run: make deploy
+    - name: Deploy on remote server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.REMOTE_SSH_KEY }}
+        script: |
+          cd /opt/${{ github.event.repository.name }}
+          
+          # Создаем необходимые директории для конфигов если их нет
+          mkdir -p config/grafana/{datasources,plugins,dashboards}
+          mkdir -p config/{loki,promtail}
+          
+          # Останавливаем существующие контейнеры
+          docker compose down || true
+          
+          # Запускаем новые контейнеры
+          docker compose up -d

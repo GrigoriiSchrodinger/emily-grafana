@@ -27,19 +27,3 @@ logs: ## View the logs from the containers
 
 open: ## Opens tabs in container
 	open http://localhost:3000/
-
-build: ## Build Docker image
-	docker build -t $(shell basename $(CURDIR)):latest .
-
-deploy: ## Deploy to remote server
-	docker save $(shell basename $(CURDIR)):latest | bzip2 | ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'bunzip2 | docker load'
-	ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '\
-		REPO_NAME=$(shell basename $(CURDIR)); \
-		docker volume create $$REPO_NAME_data || true; \
-		docker stop $$REPO_NAME-container || true; \
-		docker rm $$REPO_NAME-container || true; \
-		docker run -d \
-			--name $$REPO_NAME-container \
-			-p 3000:3000 \
-			-v $$REPO_NAME_data:/app/data \
-			$$REPO_NAME:latest'

@@ -45,6 +45,12 @@ jobs:
             docker volume create --name loki-data
           fi
           
+          # Создаем сеть если она не существует
+          if ! docker network inspect app >/dev/null 2>&1; then
+            echo "Creating app network..."
+            docker network create app
+          fi
+          
           # Останавливаем контейнеры если они запущены
           docker compose down || true
           

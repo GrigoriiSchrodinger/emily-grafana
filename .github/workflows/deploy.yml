@@ -34,8 +34,8 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
-          # Останавливаем существующие контейнеры
-          docker compose down || true
+          # Останавливаем существующие контейнеры, сохраняя volumes
+          docker compose down --volumes=false || true
           
           # Запускаем новые контейнеры
           docker compose up -d

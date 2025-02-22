@@ -34,6 +34,11 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
+          # Создаем директории для постоянного хранения данных
+          sudo mkdir -p /opt/grafana /opt/loki
+          sudo chown -R 472:472 /opt/grafana  # 472 - это UID пользователя grafana в контейнере
+          sudo chown -R 10001:10001 /opt/loki # 10001 - это UID пользователя loki в контейнере
+          
           # Останавливаем существующие контейнеры, сохраняя volumes
           docker compose down --volumes=false || true
           

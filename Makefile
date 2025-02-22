@@ -15,7 +15,6 @@ else
 	DOCKER_COMPOSE_CMD := compose
 endif
 
-# DOCKER TASKS
 up: ## Runs the containers in detached mode
 	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_CMD) up -d
 

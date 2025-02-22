@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     environment: prod
 
@@ -14,31 +14,29 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Transfer files to remote server
-      uses: appleboy/scp-action@v0.1.7
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.8.0
       with:
-        host: ${{ secrets.REMOTE_HOST }}
-        username: ${{ secrets.REMOTE_USER }}
-        key: ${{ secrets.REMOTE_SSH_KEY }}
-        source: "."
-        target: "/opt/${{ github.event.repository.name }}"
-        strip_components: 0
+        ssh-private-key: ${{ secrets.REMOTE_SSH_KEY }}
+
+    - name: Copy files to remote server
+      run: |
+        # Создаем директорию на удаленном сервере
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} 'mkdir -p ~/app'
+        
+        # Копируем необходимые файлы
+        scp -o StrictHostKeyChecking=no docker-compose.yaml ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
+        scp -o StrictHostKeyChecking=no -r config ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
+        scp -o StrictHostKeyChecking=no Makefile ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
 
     - name: Deploy on remote server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.REMOTE_HOST }}
-        username: ${{ secrets.REMOTE_USER }}
-        key: ${{ secrets.REMOTE_SSH_KEY }}
-        script: |
-          cd /opt/${{ github.event.repository.name }}
-          
-          # Создаем необходимые директории для конфигов если их нет
-          mkdir -p config/grafana/{datasources,plugins,dashboards}
-          mkdir -p config/{loki,promtail}
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+          cd ~/app
           
           # Останавливаем существующие контейнеры
           docker compose down || true
           
           # Запускаем новые контейнеры
           docker compose up -d
+        EOF

@@ -34,6 +34,18 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
+          # Создаем директорию для бэкапов если её нет
+          sudo mkdir -p /var/backups/docker-volumes
+          
+          # Создаем бэкап volumes перед деплоем
+          timestamp=$(date +%Y%m%d_%H%M%S)
+          sudo tar -czf "/var/backups/docker-volumes/grafana-data_${timestamp}.tar.gz" -C /var/lib/docker/volumes/grafana-data/_data .
+          sudo tar -czf "/var/backups/docker-volumes/loki-data_${timestamp}.tar.gz" -C /var/lib/docker/volumes/loki-data/_data .
+          
+          # Оставляем только последние 5 бэкапов
+          sudo find /var/backups/docker-volumes -name "grafana-data_*.tar.gz" -type f -printf '%T@ %p\n' | sort -n | head -n -5 | cut -d' ' -f2- | xargs -r sudo rm
+          sudo find /var/backups/docker-volumes -name "loki-data_*.tar.gz" -type f -printf '%T@ %p\n' | sort -n | head -n -5 | cut -d' ' -f2- | xargs -r sudo rm
+          
           # Проверяем существование volumes
           if ! docker volume inspect grafana-data > /dev/null 2>&1; then
             # Создаем директории для данных если их нет
@@ -83,11 +95,15 @@ jobs:
           # Проверяем логи на наличие ошибок
           docker compose logs --tail=50
           
-          # Проверяем, что volumes существуют и содержат данные
-          echo "Checking volumes:"
-          docker volume ls | grep -E 'grafana-data|loki-data'
+          # Проверяем размер volumes и права доступа
+          echo "Checking volumes state:"
+          sudo ls -la /var/lib/docker/volumes/grafana-data/_data/
+          sudo ls -la /var/lib/docker/volumes/loki-data/_data/
           
-          # Проверяем размер volumes
-          sudo du -sh /var/lib/docker/volumes/grafana-data/_data/
-          sudo du -sh /var/lib/docker/volumes/loki-data/_data/
+          # Проверяем, что Grafana и Loki работают корректно
+          echo "Checking Grafana health:"
+          curl -s http://localhost:3000/api/health || echo "Grafana health check failed"
+          
+          echo "Checking Loki health:"
+          curl -s http://localhost:3100/ready || echo "Loki health check failed"
         EOF

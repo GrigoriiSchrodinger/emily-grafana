@@ -34,49 +34,16 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
-          # Проверяем и создаем директории для volumes если их нет
-          sudo mkdir -p /var/lib/docker/volumes/grafana-data/_data
-          sudo mkdir -p /var/lib/docker/volumes/loki-data/_data
-          
-          # Проверяем существующие volumes и их данные
-          echo "Checking existing volumes:"
-          docker volume ls
-          
-          # Проверяем содержимое директорий
-          echo "Checking Grafana data directory:"
-          sudo ls -la /var/lib/docker/volumes/grafana-data/_data/
-          
-          # Удаляем volumes если они существуют, но не правильно настроены
-          if docker volume inspect grafana-data >/dev/null 2>&1; then
-            docker volume rm grafana-data || true
+          # Создаем volumes если они не существуют
+          if ! docker volume inspect grafana-data >/dev/null 2>&1; then
+            echo "Creating grafana-data volume..."
+            docker volume create --name grafana-data
           fi
           
-          if docker volume inspect loki-data >/dev/null 2>&1; then
-            docker volume rm loki-data || true
+          if ! docker volume inspect loki-data >/dev/null 2>&1; then
+            echo "Creating loki-data volume..."
+            docker volume create --name loki-data
           fi
-          
-          # Создаем Docker volumes заново с правильными параметрами
-          docker volume create \
-            --driver local \
-            --opt type=none \
-            --opt o=bind \
-            --opt device=/var/lib/docker/volumes/grafana-data/_data \
-            grafana-data
-          
-          docker volume create \
-            --driver local \
-            --opt type=none \
-            --opt o=bind \
-            --opt device=/var/lib/docker/volumes/loki-data/_data \
-            loki-data
-          
-          # Устанавливаем правильные права на директории
-          sudo chown -R 472:472 /var/lib/docker/volumes/grafana-data/_data
-          sudo chown -R 10001:10001 /var/lib/docker/volumes/loki-data/_data
-          
-          # Проверяем права доступа после установки
-          echo "Checking permissions after setup:"
-          ls -la /var/lib/docker/volumes/grafana-data/_data
           
           # Останавливаем контейнеры если они запущены
           docker compose down || true
@@ -140,9 +107,6 @@ jobs:
             docker compose logs loki --tail=50
             exit 1
           fi
-          
-          # Проверяем, что volumes правильно примонтированы
-          docker inspect grafana | grep Mounts -A 10
           
           echo "Deployment completed successfully"
         EOF

@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-logging:
   &default-logging
   driver: "json-file"
@@ -95,17 +93,5 @@ networks:
 volumes:
   grafana-data:
     name: grafana-data
-    external: true
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /var/lib/docker/volumes/grafana-data/_data
   loki-data:
     name: loki-data
-    external: true
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /var/lib/docker/volumes/loki-data/_data

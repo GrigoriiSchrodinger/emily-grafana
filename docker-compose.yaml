@@ -9,6 +9,15 @@ x-logging:
     tag: "{{.Name}}"
 
 services:
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - app
+    logging: *default-logging
+
   nginx-app:
     container_name: nginx-app
     image: nginx
@@ -16,7 +25,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     ports:
-      - 8080:80
+      - "8080:80"
     networks:
       - app
     logging: *default-logging
@@ -25,7 +34,7 @@ services:
     image: grafana/grafana:11.0.0
     container_name: grafana
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/datasources/grafana.yaml:/etc/grafana/provisioning/datasources/datasources.yaml

@@ -34,9 +34,24 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
-          # Создаем Docker volumes если они еще не существуют
-          docker volume create --name=grafana-data || true
-          docker volume create --name=loki-data || true
+          # Создаем Docker volumes с нужными параметрами если они еще не существуют
+          docker volume create \
+            --driver local \
+            --opt type=none \
+            --opt o=bind \
+            --opt device=/var/lib/docker/volumes/grafana-data/_data \
+            grafana-data || true
+          
+          docker volume create \
+            --driver local \
+            --opt type=none \
+            --opt o=bind \
+            --opt device=/var/lib/docker/volumes/loki-data/_data \
+            loki-data || true
+          
+          # Создаем директории для данных если их нет
+          sudo mkdir -p /var/lib/docker/volumes/grafana-data/_data
+          sudo mkdir -p /var/lib/docker/volumes/loki-data/_data
           
           # Останавливаем контейнеры без удаления чего-либо
           docker compose stop || true
@@ -44,9 +59,9 @@ jobs:
           # Удаляем только контейнеры, оставляя volumes и сети
           docker compose rm -f || true
           
-          # Устанавливаем правильные права на volumes
-          docker run --rm -v grafana-data:/data busybox chown -R 472:472 /data
-          docker run --rm -v loki-data:/data busybox chown -R 10001:10001 /data
+          # Устанавливаем правильные права на директории
+          sudo chown -R 472:472 /var/lib/docker/volumes/grafana-data/_data
+          sudo chown -R 10001:10001 /var/lib/docker/volumes/loki-data/_data
           
           # Запускаем новые контейнеры
           docker compose up -d

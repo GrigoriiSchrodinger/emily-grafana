@@ -34,13 +34,13 @@ build: ## Build Docker image
 deploy: ## Deploy to remote server
 	docker save $(shell basename $(CURDIR)):latest | bzip2 | ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'bunzip2 | docker load'
 	ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'bash -s' << 'EOF'
-		REPO_NAME=$(shell basename $(CURDIR)) && \
-		docker volume create $${REPO_NAME}_data || true && \
-		docker stop $${REPO_NAME}-container || true && \
-		docker rm $${REPO_NAME}-container || true && \
-		docker run -d \
-			--name $${REPO_NAME}-container \
-			-p 8000:8000 \
-			-v $${REPO_NAME}_data:/app/data \
-			$${REPO_NAME}:latest
+	REPO_NAME=$(shell basename $(CURDIR)) && \
+	docker volume create $${REPO_NAME}_data || true && \
+	docker stop $${REPO_NAME}-container || true && \
+	docker rm $${REPO_NAME}-container || true && \
+	docker run -d \
+		--name $${REPO_NAME}-container \
+		-p 8000:8000 \
+		-v $${REPO_NAME}_data:/app/data \
+		$${REPO_NAME}:latest
 EOF

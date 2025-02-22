@@ -38,8 +38,11 @@ jobs:
           docker volume create --name=grafana-data || true
           docker volume create --name=loki-data || true
           
-          # Останавливаем существующие контейнеры, сохраняя volumes
-          docker compose down --volumes=false || true
+          # Останавливаем контейнеры без удаления чего-либо
+          docker compose stop || true
+          
+          # Удаляем только контейнеры, оставляя volumes и сети
+          docker compose rm -f || true
           
           # Устанавливаем правильные права на volumes
           docker run --rm -v grafana-data:/data busybox chown -R 472:472 /data
@@ -56,4 +59,12 @@ jobs:
           
           # Проверяем логи на наличие ошибок
           docker compose logs --tail=50
+          
+          # Проверяем, что volumes существуют и содержат данные
+          echo "Checking volumes:"
+          docker volume ls | grep -E 'grafana-data|loki-data'
+          
+          # Проверяем размер volumes
+          sudo du -sh /var/lib/docker/volumes/grafana-data/_data/
+          sudo du -sh /var/lib/docker/volumes/loki-data/_data/
         EOF

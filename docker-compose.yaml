@@ -87,6 +87,16 @@ volumes:
   grafana-data:
     name: grafana-data
     external: true
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/lib/docker/volumes/grafana-data/_data
   loki-data:
     name: loki-data
     external: true
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/lib/docker/volumes/loki-data/_data

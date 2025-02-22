@@ -34,60 +34,59 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
-          # Создаем директорию для бэкапов если её нет
-          sudo mkdir -p /var/backups/docker-volumes
+          # Проверяем и создаем директории для volumes если их нет
+          sudo mkdir -p /var/lib/docker/volumes/grafana-data/_data
+          sudo mkdir -p /var/lib/docker/volumes/loki-data/_data
           
-          # Создаем бэкап volumes перед деплоем
-          timestamp=$(date +%Y%m%d_%H%M%S)
-          sudo tar -czf "/var/backups/docker-volumes/grafana-data_${timestamp}.tar.gz" -C /var/lib/docker/volumes/grafana-data/_data .
-          sudo tar -czf "/var/backups/docker-volumes/loki-data_${timestamp}.tar.gz" -C /var/lib/docker/volumes/loki-data/_data .
+          # Проверяем существующие volumes и их данные
+          echo "Checking existing volumes:"
+          docker volume ls
           
-          # Оставляем только последние 5 бэкапов
-          sudo find /var/backups/docker-volumes -name "grafana-data_*.tar.gz" -type f -printf '%T@ %p\n' | sort -n | head -n -5 | cut -d' ' -f2- | xargs -r sudo rm
-          sudo find /var/backups/docker-volumes -name "loki-data_*.tar.gz" -type f -printf '%T@ %p\n' | sort -n | head -n -5 | cut -d' ' -f2- | xargs -r sudo rm
+          # Проверяем содержимое директорий
+          echo "Checking Grafana data directory:"
+          sudo ls -la /var/lib/docker/volumes/grafana-data/_data/
           
-          # Проверяем существование volumes
-          if ! docker volume inspect grafana-data > /dev/null 2>&1; then
-            # Создаем директории для данных если их нет
-            sudo mkdir -p /var/lib/docker/volumes/grafana-data/_data
-            
-            # Создаем Docker volume
-            docker volume create \
-              --driver local \
-              --opt type=none \
-              --opt o=bind \
-              --opt device=/var/lib/docker/volumes/grafana-data/_data \
-              grafana-data
+          # Удаляем volumes если они существуют, но не правильно настроены
+          if docker volume inspect grafana-data >/dev/null 2>&1; then
+            docker volume rm grafana-data || true
           fi
           
-          if ! docker volume inspect loki-data > /dev/null 2>&1; then
-            # Создаем директории для данных если их нет
-            sudo mkdir -p /var/lib/docker/volumes/loki-data/_data
-            
-            # Создаем Docker volume
-            docker volume create \
-              --driver local \
-              --opt type=none \
-              --opt o=bind \
-              --opt device=/var/lib/docker/volumes/loki-data/_data \
-              loki-data
+          if docker volume inspect loki-data >/dev/null 2>&1; then
+            docker volume rm loki-data || true
           fi
           
-          # Останавливаем контейнеры без удаления чего-либо
-          docker compose stop || true
+          # Создаем Docker volumes заново с правильными параметрами
+          docker volume create \
+            --driver local \
+            --opt type=none \
+            --opt o=bind \
+            --opt device=/var/lib/docker/volumes/grafana-data/_data \
+            grafana-data
           
-          # Удаляем только контейнеры, оставляя volumes и сети
-          docker compose rm -f || true
+          docker volume create \
+            --driver local \
+            --opt type=none \
+            --opt o=bind \
+            --opt device=/var/lib/docker/volumes/loki-data/_data \
+            loki-data
           
           # Устанавливаем правильные права на директории
           sudo chown -R 472:472 /var/lib/docker/volumes/grafana-data/_data
           sudo chown -R 10001:10001 /var/lib/docker/volumes/loki-data/_data
           
-          # Запускаем новые контейнеры
+          # Проверяем права доступа после установки
+          echo "Checking permissions after setup:"
+          ls -la /var/lib/docker/volumes/grafana-data/_data
+          
+          # Останавливаем контейнеры если они запущены
+          docker compose down || true
+          
+          # Запускаем контейнеры
           docker compose up -d
           
-          # Ждем, пока сервисы запустятся
-          sleep 30
+          # Ждем запуска сервисов
+          echo "Waiting for services to start..."
+          sleep 45
           
           # Проверяем статус контейнеров
           docker compose ps
@@ -95,15 +94,13 @@ jobs:
           # Проверяем логи на наличие ошибок
           docker compose logs --tail=50
           
-          # Проверяем размер volumes и права доступа
-          echo "Checking volumes state:"
-          sudo ls -la /var/lib/docker/volumes/grafana-data/_data/
-          sudo ls -la /var/lib/docker/volumes/loki-data/_data/
-          
-          # Проверяем, что Grafana и Loki работают корректно
+          # Проверяем доступность сервисов
           echo "Checking Grafana health:"
           curl -s http://localhost:3000/api/health || echo "Grafana health check failed"
           
           echo "Checking Loki health:"
           curl -s http://localhost:3100/ready || echo "Loki health check failed"
+          
+          # Проверяем, что volumes правильно примонтированы
+          docker inspect grafana | grep Mounts -A 10
         EOF

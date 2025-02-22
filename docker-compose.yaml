@@ -27,7 +27,7 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - /opt/grafana:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
       - ./config/grafana/datasources/grafana.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./config/grafana/plugins/app.yaml:/etc/grafana/provisioning/plugins/app.yaml
       - ./config/grafana/dashboards/provider.yaml:/etc/grafana/provisioning/dashboards/provider.yaml
@@ -49,7 +49,7 @@ services:
       - 3100:3100
     command: -config.file=/etc/loki/loki.yaml
     volumes:
-      - /opt/loki:/loki
+      - loki-data:/loki
       - ./config/loki/loki.yaml:/etc/loki/loki.yaml
     networks:
       - app
@@ -84,17 +84,9 @@ networks:
     name: app
 
 volumes:
-  grafana-storage:
-    name: grafana-storage
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/grafana
-  loki-storage:
-    name: loki-storage
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/loki
+  grafana-data:
+    name: grafana-data
+    external: true
+  loki-data:
+    name: loki-data
+    external: true

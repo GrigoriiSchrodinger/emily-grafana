@@ -34,14 +34,26 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
-          # Создаем директории для постоянного хранения данных
-          sudo mkdir -p /opt/grafana /opt/loki
-          sudo chown -R 472:472 /opt/grafana  # 472 - это UID пользователя grafana в контейнере
-          sudo chown -R 10001:10001 /opt/loki # 10001 - это UID пользователя loki в контейнере
+          # Создаем Docker volumes если они еще не существуют
+          docker volume create --name=grafana-data || true
+          docker volume create --name=loki-data || true
           
           # Останавливаем существующие контейнеры, сохраняя volumes
           docker compose down --volumes=false || true
           
+          # Устанавливаем правильные права на volumes
+          docker run --rm -v grafana-data:/data busybox chown -R 472:472 /data
+          docker run --rm -v loki-data:/data busybox chown -R 10001:10001 /data
+          
           # Запускаем новые контейнеры
           docker compose up -d
+          
+          # Ждем, пока сервисы запустятся
+          sleep 30
+          
+          # Проверяем статус контейнеров
+          docker compose ps
+          
+          # Проверяем логи на наличие ошибок
+          docker compose logs --tail=50
         EOF

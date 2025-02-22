@@ -93,5 +93,7 @@ networks:
 volumes:
   grafana-data:
     name: grafana-data
+    external: true
   loki-data:
     name: loki-data
+    external: true

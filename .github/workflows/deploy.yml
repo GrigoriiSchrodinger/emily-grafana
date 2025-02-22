@@ -51,14 +51,17 @@ jobs:
           # Функция для проверки статуса контейнеров
           check_containers() {
             local all_running=true
+            local container_status=""
+            
             while IFS= read -r container; do
-              status=$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null)
-              if [ "$status" != "running" ]; then
+              container_status=$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null)
+              if [ "$container_status" != "running" ]; then
                 all_running=false
-                echo "Container $container is not running (status: $status)"
+                echo "Container $container is not running (status: $container_status)"
               fi
             done < <(docker compose ps -q)
-            $all_running
+            
+            [ "$all_running" = true ]
           }
           
           # Запускаем контейнеры с повторными попытками

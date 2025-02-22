@@ -81,26 +81,68 @@ jobs:
           # Останавливаем контейнеры если они запущены
           docker compose down || true
           
-          # Запускаем контейнеры
-          docker compose up -d
+          # Функция для проверки статуса контейнеров
+          check_containers() {
+            local all_running=true
+            while IFS= read -r container; do
+              status=$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null)
+              if [ "$status" != "running" ]; then
+                all_running=false
+                echo "Container $container is not running (status: $status)"
+              fi
+            done < <(docker compose ps -q)
+            $all_running
+          }
           
-          # Ждем запуска сервисов
-          echo "Waiting for services to start..."
-          sleep 45
+          # Запускаем контейнеры с повторными попытками
+          max_attempts=3
+          attempt=1
           
-          # Проверяем статус контейнеров
-          docker compose ps
-          
-          # Проверяем логи на наличие ошибок
-          docker compose logs --tail=50
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts to start containers"
+            
+            docker compose up -d
+            
+            # Ждем запуска сервисов
+            echo "Waiting for services to start..."
+            sleep 45
+            
+            if check_containers; then
+              echo "All containers are running successfully"
+              break
+            else
+              echo "Some containers failed to start. Checking logs:"
+              docker compose logs --tail=100
+              
+              if [ $attempt -eq $max_attempts ]; then
+                echo "Failed to start containers after $max_attempts attempts"
+                exit 1
+              fi
+              
+              echo "Stopping containers and retrying..."
+              docker compose down
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
           
           # Проверяем доступность сервисов
           echo "Checking Grafana health:"
-          curl -s http://localhost:3000/api/health || echo "Grafana health check failed"
+          if ! curl -s http://localhost:3000/api/health; then
+            echo "Grafana health check failed"
+            docker compose logs grafana --tail=50
+            exit 1
+          fi
           
           echo "Checking Loki health:"
-          curl -s http://localhost:3100/ready || echo "Loki health check failed"
+          if ! curl -s http://localhost:3100/ready; then
+            echo "Loki health check failed"
+            docker compose logs loki --tail=50
+            exit 1
+          fi
           
           # Проверяем, что volumes правильно примонтированы
           docker inspect grafana | grep Mounts -A 10
+          
+          echo "Deployment completed successfully"
         EOF

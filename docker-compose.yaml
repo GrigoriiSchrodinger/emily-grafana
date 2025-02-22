@@ -89,6 +89,7 @@ services:
 networks:
   app:
     name: app
+    external: true
 
 volumes:
   grafana-data:

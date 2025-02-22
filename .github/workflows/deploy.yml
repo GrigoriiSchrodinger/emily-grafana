@@ -34,24 +34,32 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
           cd ~/app
           
-          # Создаем Docker volumes с нужными параметрами если они еще не существуют
-          docker volume create \
-            --driver local \
-            --opt type=none \
-            --opt o=bind \
-            --opt device=/var/lib/docker/volumes/grafana-data/_data \
-            grafana-data || true
+          # Проверяем существование volumes
+          if ! docker volume inspect grafana-data > /dev/null 2>&1; then
+            # Создаем директории для данных если их нет
+            sudo mkdir -p /var/lib/docker/volumes/grafana-data/_data
+            
+            # Создаем Docker volume
+            docker volume create \
+              --driver local \
+              --opt type=none \
+              --opt o=bind \
+              --opt device=/var/lib/docker/volumes/grafana-data/_data \
+              grafana-data
+          fi
           
-          docker volume create \
-            --driver local \
-            --opt type=none \
-            --opt o=bind \
-            --opt device=/var/lib/docker/volumes/loki-data/_data \
-            loki-data || true
-          
-          # Создаем директории для данных если их нет
-          sudo mkdir -p /var/lib/docker/volumes/grafana-data/_data
-          sudo mkdir -p /var/lib/docker/volumes/loki-data/_data
+          if ! docker volume inspect loki-data > /dev/null 2>&1; then
+            # Создаем директории для данных если их нет
+            sudo mkdir -p /var/lib/docker/volumes/loki-data/_data
+            
+            # Создаем Docker volume
+            docker volume create \
+              --driver local \
+              --opt type=none \
+              --opt o=bind \
+              --opt device=/var/lib/docker/volumes/loki-data/_data \
+              loki-data
+          fi
           
           # Останавливаем контейнеры без удаления чего-либо
           docker compose stop || true

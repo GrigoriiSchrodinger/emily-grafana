@@ -19,11 +19,6 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.REMOTE_SSH_KEY }}
 
-    - name: Export environment variables
-      run: |
-        echo "GF_SECURITY_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}" >> $GITHUB_ENV
-        echo "GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> $GITHUB_ENV
-
     - name: Copy files to remote server
       run: |
         # Создаем директорию на удаленном сервере
@@ -36,8 +31,12 @@ jobs:
 
     - name: Deploy on remote server
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'ENDSSH'
           cd ~/app
+          
+          # Экспортируем переменные окружения для docker-compose
+          export GRAFANA_ADMIN_USER="${{ secrets.GRAFANA_ADMIN_USER }}"
+          export GRAFANA_ADMIN_PASSWORD="${{ secrets.GRAFANA_ADMIN_PASSWORD }}"
           
           # Создаем volumes если они не существуют
           if ! docker volume inspect grafana-data >/dev/null 2>&1; then
@@ -123,4 +122,4 @@ jobs:
           fi
           
           echo "Deployment completed successfully"
-        EOF
+        ENDSSH

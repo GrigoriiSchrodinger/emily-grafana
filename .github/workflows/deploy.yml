@@ -30,21 +30,24 @@ jobs:
         scp -o StrictHostKeyChecking=no Makefile ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
 
     - name: Deploy on remote server
+      env:
+        GRAFANA_USER: ${{ secrets.GRAFANA_ADMIN_USER }}
+        GRAFANA_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << ENDSSH
           cd ~/app
           
-          # Экспортируем переменные окружения для docker-compose
-          export GRAFANA_ADMIN_USER='${{ secrets.GRAFANA_ADMIN_USER }}'
-          export GRAFANA_ADMIN_PASSWORD='${{ secrets.GRAFANA_ADMIN_PASSWORD }}'
+          # Создаем файл с переменными окружения
+          cat > .env << EOF
+          GRAFANA_ADMIN_USER=${GRAFANA_USER}
+          GRAFANA_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+          EOF
           
           # Проверяем, что переменные установлены
-          if [ -z "\${GRAFANA_ADMIN_USER}" ] || [ -z "\${GRAFANA_ADMIN_PASSWORD}" ]; then
-            echo "Error: Grafana credentials are not set"
+          if [ ! -s .env ]; then
+            echo "Error: Failed to create .env file"
             exit 1
           fi
-          
-          echo "Grafana credentials are set"
           
           # Создаем volumes если они не существуют
           if ! docker volume inspect grafana-data >/dev/null 2>&1; then
@@ -89,7 +92,7 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts to start containers"
             
-            docker compose up -d
+            docker compose --env-file .env up -d
             
             # Ждем запуска сервисов
             echo "Waiting for services to start..."

@@ -31,12 +31,20 @@ jobs:
 
     - name: Deploy on remote server
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'ENDSSH'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << ENDSSH
           cd ~/app
           
           # Экспортируем переменные окружения для docker-compose
-          export GRAFANA_ADMIN_USER="${{ secrets.GRAFANA_ADMIN_USER }}"
-          export GRAFANA_ADMIN_PASSWORD="${{ secrets.GRAFANA_ADMIN_PASSWORD }}"
+          export GRAFANA_ADMIN_USER='${{ secrets.GRAFANA_ADMIN_USER }}'
+          export GRAFANA_ADMIN_PASSWORD='${{ secrets.GRAFANA_ADMIN_PASSWORD }}'
+          
+          # Проверяем, что переменные установлены
+          if [ -z "\${GRAFANA_ADMIN_USER}" ] || [ -z "\${GRAFANA_ADMIN_PASSWORD}" ]; then
+            echo "Error: Grafana credentials are not set"
+            exit 1
+          fi
+          
+          echo "Grafana credentials are set"
           
           # Создаем volumes если они не существуют
           if ! docker volume inspect grafana-data >/dev/null 2>&1; then

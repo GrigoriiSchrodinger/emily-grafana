@@ -31,9 +31,9 @@ jobs:
 
     - name: Deploy on remote server
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << ENDSSH
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'ENDSSH'
           cd ~/app
-      
+          
           # Создаем volumes если они не существуют
           if ! docker volume inspect grafana-data >/dev/null 2>&1; then
             echo "Creating grafana-data volume..."
@@ -77,7 +77,7 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts to start containers"
             
-            docker compose --env-file .env up -d
+            docker compose up -d
             
             # Ждем запуска сервисов
             echo "Waiting for services to start..."

@@ -30,25 +30,10 @@ jobs:
         scp -o StrictHostKeyChecking=no Makefile ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
 
     - name: Deploy on remote server
-      env:
-        GRAFANA_USER: ${{ secrets.GRAFANA_ADMIN_USER }}
-        GRAFANA_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << ENDSSH
           cd ~/app
-          
-          # Создаем файл с переменными окружения
-          cat > .env << EOF
-          GRAFANA_ADMIN_USER=${GRAFANA_USER}
-          GRAFANA_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-          EOF
-          
-          # Проверяем, что переменные установлены
-          if [ ! -s .env ]; then
-            echo "Error: Failed to create .env file"
-            exit 1
-          fi
-          
+      
           # Создаем volumes если они не существуют
           if ! docker volume inspect grafana-data >/dev/null 2>&1; then
             echo "Creating grafana-data volume..."

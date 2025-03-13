@@ -28,6 +28,7 @@ jobs:
         scp -o StrictHostKeyChecking=no docker-compose.yaml ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
         scp -o StrictHostKeyChecking=no -r config ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
         scp -o StrictHostKeyChecking=no Makefile ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
+        scp -o StrictHostKeyChecking=no .env ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
 
     - name: Deploy on remote server
       run: |

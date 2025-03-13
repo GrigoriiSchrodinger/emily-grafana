@@ -99,17 +99,6 @@ services:
       timeout: 5s
       retries: 5
 
-  log-generator:
-    image: us-docker.pkg.dev/grafanalabs-global/docker-explore-logs-prod/fake-log-generator:latest
-    container_name: log-generator
-    command: -url http://loki:3100/loki/api/v1/push -otlp.endpoint=loki:4317
-    depends_on:
-      loki:
-        condition: service_healthy
-    networks:
-      - app
-    logging: *default-logging
-
 networks:
   app:
     name: app

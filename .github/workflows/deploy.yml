@@ -128,8 +128,14 @@ jobs:
           echo "Checking Loki health:"
           if ! curl -s http://localhost:3100/ready; then
             echo "Loki health check failed"
-            docker compose logs loki --tail=50
-            exit 1
+            docker compose logs loki --tail=100
+            echo "Trying to restart Loki..."
+            docker compose restart loki
+            sleep 30
+            if ! curl -s http://localhost:3100/ready; then
+              echo "Loki still not healthy after restart"
+              exit 1
+            fi
           fi
           
           echo "Deployment completed successfully"

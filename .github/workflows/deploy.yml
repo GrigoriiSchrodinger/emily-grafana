@@ -24,10 +24,17 @@ jobs:
         # Создаем директорию на удаленном сервере
         ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} 'mkdir -p ~/app'
         
+        # Удаляем существующий файл .env, если он есть
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} 'rm -f ~/app/.env'
+        
         # Копируем необходимые файлы
         scp -o StrictHostKeyChecking=no docker-compose.yaml ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
         scp -o StrictHostKeyChecking=no -r config ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
         scp -o StrictHostKeyChecking=no Makefile ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
+        scp -o StrictHostKeyChecking=no .env_example ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
+        
+        # Создаем .env из .env_example на удаленном сервере
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} 'cp ~/app/.env_example ~/app/.env'
 
     - name: Deploy on remote server
       run: |

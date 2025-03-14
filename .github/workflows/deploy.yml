@@ -30,24 +30,9 @@ jobs:
         scp -o StrictHostKeyChecking=no Makefile ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/app/
 
     - name: Deploy on remote server
-      env:
-        GRAFANA_USER: ${{ secrets.GRAFANA_ADMIN_USER }}
-        GRAFANA_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << ENDSSH
+        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'ENDSSH'
           cd ~/app
-          
-          # Создаем файл с переменными окружения
-          cat > .env << EOF
-          GRAFANA_ADMIN_USER=${GRAFANA_USER}
-          GRAFANA_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-          EOF
-          
-          # Проверяем, что переменные установлены
-          if [ ! -s .env ]; then
-            echo "Error: Failed to create .env file"
-            exit 1
-          fi
           
           # Создаем volumes если они не существуют
           if ! docker volume inspect grafana-data >/dev/null 2>&1; then
@@ -92,7 +77,7 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts to start containers"
             
-            docker compose --env-file .env up -d
+            docker compose up -d
             
             # Ждем запуска сервисов
             echo "Waiting for services to start..."
@@ -128,14 +113,8 @@ jobs:
           echo "Checking Loki health:"
           if ! curl -s http://localhost:3100/ready; then
             echo "Loki health check failed"
-            docker compose logs loki --tail=100
-            echo "Trying to restart Loki..."
-            docker compose restart loki
-            sleep 30
-            if ! curl -s http://localhost:3100/ready; then
-              echo "Loki still not healthy after restart"
-              exit 1
-            fi
+            docker compose logs loki --tail=50
+            exit 1
           fi
           
           echo "Deployment completed successfully"

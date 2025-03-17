@@ -10,8 +10,9 @@ services:
   redis:
     container_name: redis
     image: redis:latest
-    ports:
-      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD} --protected-mode yes
+    volumes:
+      - redis-data:/data
     networks:
       - app
     logging: *default-logging
@@ -22,8 +23,6 @@ services:
     labels:
       logging: "promtail"
       logging_jobname: "containerlogs"
-    ports:
-      - "8080:80"
     networks:
       - app
     logging: *default-logging
@@ -51,8 +50,6 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: loki
-    ports:
-      - 3100:3100
     command: -config.file=/etc/loki/loki.yaml
     volumes:
       - loki-data:/loki
@@ -96,4 +93,7 @@ volumes:
     external: true
   loki-data:
     name: loki-data
+    external: true
+  redis-data:
+    name: redis-data
     external: true

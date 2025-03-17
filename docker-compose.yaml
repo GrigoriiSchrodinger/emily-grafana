@@ -11,8 +11,6 @@ services:
     container_name: redis
     image: redis:latest
     command: redis-server --protected-mode yes
-    volumes:
-      - redis-data:/data
     networks:
       - app
     logging: *default-logging
@@ -93,7 +91,4 @@ volumes:
     external: true
   loki-data:
     name: loki-data
-    external: true
-  redis-data:
-    name: redis-data
     external: true

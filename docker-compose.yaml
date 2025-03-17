@@ -10,7 +10,6 @@ services:
   redis:
     container_name: redis
     image: redis:latest
-    command: redis-server --protected-mode yes
     networks:
       - app
     logging: *default-logging

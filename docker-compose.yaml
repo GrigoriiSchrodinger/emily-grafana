@@ -12,6 +12,8 @@ services:
     image: redis:latest
     networks:
       - app
+    ports:
+      - "6379:6379"
     logging: *default-logging
 
   nginx-app:
